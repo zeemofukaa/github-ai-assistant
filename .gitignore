@@ -1,0 +1,7 @@
+venv/
+.env
+repos/
+__pycache__/
+*.pyc
+README_generated.md
+memory.json
