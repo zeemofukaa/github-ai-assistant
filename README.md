@@ -63,7 +63,7 @@ Built with Python, the Gemini API, and the GitHub API, it can summarize reposito
 Clone the repository
 
 ```bash
-git clone https://github.com/zeemofukaa/github-repository-ai-assistant.git
+git clone https://github.com/zeemofukaa/github-ai-assistant.git
 cd github-repository-ai-assistant
 ```
 
