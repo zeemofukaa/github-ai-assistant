@@ -1,8 +1,8 @@
 ### 🤖 GitHub Repository AI Assistant
 
-An AI-powered command-line assistant that analyzes GitHub repositories and helps developers quickly understand unfamiliar codebases.
+An AI-powered command-line assistant that helps developers quickly understand unfamiliar GitHub repositories through automated code analysis.
 
-Built with Python, the Gemini API, and the GitHub API, it can summarize repositories, explain source files, locate classes/functions, generate README files, and cache previous analyses for faster follow-up questions.
+Built with Python, the Google Gemini API, GitPython, and the GitHub API, it can summarize repositories, explain source files, locate classes/functions, analyze project architecture, generate README files, and cache previous analyses for faster follow-up questions.
 
 -------------------------------------------------------------------------------------
 
@@ -12,7 +12,9 @@ Built with Python, the Gemini API, and the GitHub API, it can summarize reposito
 
 • Explain individual source files
 
-• Search where classes and functions are implemented
+• Search where classes, functions, and variables are defined or referenced
+
+• Analyze project architecture using an automatically generated dependency graph
 
 • Generate professional README files
 
@@ -36,7 +38,11 @@ Built with Python, the Gemini API, and the GitHub API, it can summarize reposito
 
 • GitPython
 
+• Python AST (Abstract Syntax Tree)
+
 • JSON-based local memory
+
+• Regular Expressions (Regex)
 
 -------------------------------------------------------------------------------------
 
@@ -48,13 +54,14 @@ Built with Python, the Gemini API, and the GitHub API, it can summarize reposito
    - Analyze Repository
    - Explain a File
    - Search Symbol/Class
+   - Analyze Project Architecture
    - Generate README
 
-3. The assistant clones the repository (or uses the local cached copy)
+3. The assistant clones the repository (or reuses the locally cached copy)
 
-4. Repository structure, README, languages and files are analyzed
+4. Repository structure, README, programming languages, dependency information, and source files are analyzed
 
-5. Gemini generates a context-aware response
+5. Gemini generates repository-aware responses using the extracted context
 
 -------------------------------------------------------------------------------------
 
@@ -64,7 +71,7 @@ Clone the repository
 
 ```bash
 git clone https://github.com/zeemofukaa/github-ai-assistant.git
-cd github-repository-ai-assistant
+cd github-ai-assistant
 ```
 
 Install dependencies
@@ -92,25 +99,31 @@ python agent.py
 
 Repository Analysis
 
-```
+```text
 Summarize this repository
 ```
 
 File Explanation
 
-```
+```text
 Explain routing.py
 ```
 
 Symbol Search
 
-```
+```text
 Where is APIRouter implemented?
+```
+
+Architecture Analysis
+
+```text
+Explain project architecture
 ```
 
 README Generation
 
-```
+```text
 Generate README
 ```
 
@@ -118,11 +131,12 @@ Generate README
 
 ✦ **Project Structure**
 
-```
-github-repository-ai-assistant/
+```text
+github-ai-assistant/
 │
 ├── agent.py
 ├── github_tools.py
+├── dependency_graph.py
 ├── gemini_client.py
 ├── memory.py
 ├── requirements.txt
@@ -132,11 +146,21 @@ github-repository-ai-assistant/
 
 -------------------------------------------------------------------------------------
 
+✦ **Notes**
+
+• Repository analyses are cached locally for faster repeated queries
+
+• Dependency graph analysis currently supports Python repositories through AST-based static analysis
+
+• Large repositories are summarized before being sent to Gemini to reduce context size
+
+-------------------------------------------------------------------------------------
+
 ✦ **Status**
 
 This is a personal project built to explore AI-assisted developer tools and repository analysis workflows.
 
-The project focuses on improving developer productivity through automated code understanding and documentation generation.
+The project combines static code analysis with large language models to help developers understand unfamiliar Python codebases more efficiently.
 
 -------------------------------------------------------------------------------------
 
