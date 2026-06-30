@@ -1,3 +1,4 @@
+import ast
 from pathlib import Path
 from git import Repo
 
@@ -125,3 +126,82 @@ def search_code(repo_path, keyword):
             pass
 
     return matches
+
+def find_symbol_usages(repo_path, symbol):
+
+    usages = []
+
+    for file in Path(repo_path).rglob("*.py"):
+
+        if ".git" in str(file):
+            continue
+
+        try:
+
+            source = file.read_text(
+                encoding="utf-8",
+                errors="ignore"
+            )
+
+            tree = ast.parse(source)
+
+        except Exception:
+            continue
+
+        class SymbolVisitor(ast.NodeVisitor):
+
+            def visit_Name(self, node):
+
+                if node.id == symbol:
+
+                    usages.append({
+                        "module": file.stem,
+                        "path": str(file.relative_to(repo_path)),
+                        "line": node.lineno,
+                        "type": "Reference"
+                    })
+
+                self.generic_visit(node)
+
+            def visit_ImportFrom(self, node):
+
+                for alias in node.names:
+
+                    if alias.name == symbol:
+
+                        usages.append({
+                            "module": file.stem,
+                            "path": str(file.relative_to(repo_path)),
+                            "line": node.lineno,
+                            "type": "Import"
+                        })
+
+            def visit_ClassDef(self, node):
+
+                if node.name == symbol:
+
+                    usages.append({
+                        "module": file.stem,
+                        "path": str(file.relative_to(repo_path)),
+                        "line": node.lineno,
+                        "type": "Class Definition"
+                    })
+
+                self.generic_visit(node)
+
+            def visit_FunctionDef(self, node):
+
+                if node.name == symbol:
+
+                    usages.append({
+                        "module": file.stem,
+                        "path": str(file.relative_to(repo_path)),
+                        "line": node.lineno,
+                        "type": "Function Definition"
+                    })
+
+                self.generic_visit(node)
+
+        SymbolVisitor().visit(tree)
+
+    return usages

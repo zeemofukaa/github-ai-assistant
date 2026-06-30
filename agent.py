@@ -1,7 +1,10 @@
 import re
 import textwrap
 import os
-
+from collections import Counter
+from dependency_graph import build_dependency_graph
+from gemini_client import ask_gemini
+from memory import save_analysis, recall_analysis
 
 from github_tools import (
     clone_repo,
@@ -10,11 +13,9 @@ from github_tools import (
     read_readme,
     read_file,
     find_file,
-    search_code
+    search_code,
+    find_symbol_usages
 )
-
-from gemini_client import ask_gemini
-from memory import save_analysis, recall_analysis
 
 def clear_screen():
     os.system("cls" if os.name == "nt" else "clear")
@@ -103,12 +104,15 @@ Explain:
 
 Formatting requirements:
 
-- Return plain text only.
-- Do not use Markdown.
-- Write exactly 3 paragraphs.
-- Each paragraph should contain 2–3 sentences.
-- Leave one blank line between paragraphs.
-- Keep the total response under 300 words.
+Explain clearly.
+
+Return plain text only.
+
+Do not use Markdown.
+
+Do not use bold, italics, headings or code fences.
+
+Separate each answer with one blank line.
 """
 
         return ask_gemini(prompt)
@@ -188,16 +192,160 @@ Formatting requirements:
 
     Formatting requirements:
 
-    - Return plain text only.
-    - Do not use Markdown.
-    - Write exactly 3 paragraphs.
-    - Each paragraph should contain 2–3 sentences.
-    - Leave one blank line between paragraphs.
-    - Keep the total response under 300 words.
+    Explain clearly.
+
+    Return plain text only.
+
+    Do not use Markdown.
+
+    Do not use bold, italics, headings or code fences.
+
+    Separate each answer with one blank line.
     """
     
         return ask_gemini(prompt)
             
+    usage_search = question.lower().startswith("find usages of")
+
+    if usage_search:
+
+            symbol = question.replace("Find usages of", "").strip()
+
+            print(f"[INFO] Searching repository for '{symbol}'...")
+
+            usages = find_symbol_usages(repo, symbol)
+
+            if len(usages) == 0:
+                return f"No usages of '{symbol}' were found."
+
+            print(f"[DONE] Found {len(usages)} usages")
+
+            counts = Counter(
+                usage["type"]
+                for usage in usages
+            )
+
+            summary = f"""
+            Definitions : {counts['Class Definition'] + counts['Function Definition']}
+            Imports     : {counts['Import']}
+            References  : {counts['Reference']}
+
+            Files:
+            """
+
+            for usage in usages:
+
+                summary += (
+                    f"- {usage['path']} "
+                    f"(Line {usage['line']}) "
+                    f"[{usage['type']}]\n"
+                )
+
+            prompt = f"""
+You are a senior software engineer.
+
+The application has already performed static analysis on the repository.
+
+Symbol:
+{symbol}
+
+Static Analysis Summary:
+
+{summary}
+
+Explain:
+
+1. What is this symbol?
+
+2. Where is it defined?
+
+3. Where is it imported?
+
+4. Where is it referenced?
+
+5. What role does it play in the project architecture?
+
+6. Which file should a new developer read first to understand it?
+
+Use only the analysis provided above.
+
+Explain clearly.
+
+Return plain text only.
+
+Do not use Markdown.
+
+Do not use bold, italics, headings or code fences.
+
+Separate each answer with one blank line.
+"""
+
+            return ask_gemini(prompt)
+    
+    architecture_request = (
+        question.lower() == "explain project architecture"
+    )
+
+    if architecture_request:
+
+        print("[INFO] Building dependency graph...")
+
+        graph = build_dependency_graph(repo)
+
+        print("[DONE] Dependency graph created")
+
+        graph_text = ""
+
+        for file, imports in graph.items():
+
+            graph_text += f"\n{file}\n"
+
+            if imports:
+
+                for module in imports:
+                    graph_text += f"  -> {module}\n"
+
+            else:
+                graph_text += "  -> No imports\n"
+
+        prompt = f"""
+    You are a senior software engineer.
+
+    The following is the import dependency graph extracted from a Python repository.
+
+    Repository:
+    {repo_url}
+
+    Dependency Graph:
+
+    {graph_text}
+
+    Based ONLY on this dependency graph, explain:
+
+    1. Overall architecture of the project
+
+    2. Which modules appear to be central
+
+    3. Possible entry point(s)
+
+    4. How different modules interact
+
+    5. Which files a new developer should study first
+
+    6. Overall design patterns you observe
+
+    Explain clearly.
+
+    Return plain text only.
+
+    Do not use Markdown.
+
+    Do not use bold, italics, headings or code fences.
+
+    Separate each answer with one blank line.
+    """
+
+        return ask_gemini(prompt)
 
     cached = recall_analysis(repo_url)
 
@@ -329,12 +477,15 @@ User Question:
 
 Formatting requirements:
 
-- Return plain text only.
-- Do not use Markdown.
-- Write exactly 3 paragraphs.
-- Each paragraph should contain 2–3 sentences.
-- Leave one blank line between paragraphs.
-- Keep the total response under 300 words.
+Explain clearly.
+
+Return plain text only.
+
+Do not use Markdown.
+
+Do not use bold, italics, headings or code fences.
+
+Separate each answer with one blank line.
 """
 
     print("[•] Asking Gemini to analyze the repository...")
@@ -378,12 +529,14 @@ def main():
         print("2. Explain a File")
         print("3. Search Symbol/Class")
         print("4. Generate README")
-        print("5. Exit")
+        print("5. Find Symbol Usages")
+        print("6. Analyze Project Architecture")
+        print("7. Exit")
         print("=" * 70)
 
         choice = input("\nEnter your choice: ")
 
-        if choice == "5":
+        if choice == "7":
             print("\nGoodbye!")
             break
         
@@ -414,6 +567,18 @@ def main():
         elif choice == "4":
 
             question = "Generate README"
+        
+        elif choice == "5":
+
+            symbol = input(
+                "\nEnter symbol to find usages: "
+            )
+
+            question = f"Find usages of {symbol}"
+
+        elif choice == "6":
+
+            question = "Explain Project Architecture"
 
         else:
 
